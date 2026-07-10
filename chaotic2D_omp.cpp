@@ -380,6 +380,21 @@ double findErr(vector<double> uF,vector<double> uH2,vector<double> cF,vector<dou
 	return sum/size/2.0;
 }
 
+double findErrNew(vector<double> &uF,vector<double> &uH2,vector<double> &cF,vector<double> &cH2,
+		double eps,double atol,double rtol)
+{
+	double sum=0;
+	int size=uF.size();
+
+#pragma omp parallel for reduction(+:sum)
+	for (int i=0;i<size;i++)
+	{
+		sum+=abs(uF[i]-uH2[i])/(atol+rtol*max(abs(uF[i]),abs(uH2[i])));
+		sum+=abs(cF[i]-cH2[i])/(atol+rtol*max(abs(cF[i]),abs(cH2[i])));
+	}
+	return sum*eps/2.0/size;
+}
+
 double findErrL2(vector<double> uF,vector<double> uH2,vector<double> cF,vector<double> cH2)
 {
 	double sum1=0,sum2=0;
@@ -409,6 +424,7 @@ int main(int argc,char ** argv)
 	int hires=0;
 	double T0=1;
 	int scenario=2;
+	double atol=1e-8,rtol=1e-5;
 
 	vector<double> u(size),c(size);
 	vector<double> uWKS(size),cWKS(size);
@@ -488,6 +504,14 @@ int main(int argc,char ** argv)
 		{
 			scenario=atoi(argv[i+1]);
 		}
+		else if (arg=="atol")
+		{
+			atol=atof(argv[i+1]);
+		}
+		else if (arg=="rtol")
+		{
+			rtol=atof(argv[i+1]);
+		}
 		else
 		{
 			cout << "Parameter " << argv[i] << " not recognised" << endl;
@@ -537,7 +561,7 @@ int main(int argc,char ** argv)
 		double tend=min(nextBlink,tmax);
 		while (t<tend)
 		{
-			dt=min(dt,tmax-t);
+			dt=min(dt,tend-t);
 
 			// full step
 			rk(u,c,uF,cF,dt,q,r,f,theta,Da,ua);
@@ -563,7 +587,8 @@ int main(int argc,char ** argv)
 			advection(cH2,cH2_WKS,x,y,0.5*dt,dx,eta,xi,beam,xs,ys,N);
 			normalise(uH2,ua,1e8);
 			normalise(cH2,0.0,1.0);
-			err=findErr(uF,uH2,cF,cH2);
+			//err=findErr(uF,uH2,cF,cH2);
+			err=findErrNew(uF,uH2,cF,cH2,eps,atol,rtol);
 			cout << "t = " << t << " dt = " << dt << " err = " << err << endl;
 
 			if (err<=eps)
