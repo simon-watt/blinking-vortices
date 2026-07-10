@@ -425,6 +425,7 @@ int main(int argc,char ** argv)
 	double T0=1;
 	int scenario=2;
 	double atol=1e-8,rtol=1e-5;
+	int total_steps=0,total_rejected=0;
 
 	vector<double> u(size),c(size);
 	vector<double> uWKS(size),cWKS(size);
@@ -435,10 +436,10 @@ int main(int argc,char ** argv)
 	vector<double> uH2(size),cH2(size);
 	vector<double> uH2_WKS(size),cH2_WKS(size);
 	vector<double> x(N+1),y(N+1);
-	vector<double> u0(size),u1(size),u2(size);
-	vector<double> c0(size),c1(size),c2(size);
 
 	double tmax=200;
+
+	double st=omp_get_wtime();
 
 	cout << "here" << endl;
 
@@ -545,7 +546,6 @@ int main(int argc,char ** argv)
 	ofstream out(oname);
 
 	double sbuff=0.9; // safety buffer
-	double st=omp_get_wtime();
 	double period=1.0*T0/scenario,nextBlink=period;
 	double xs,ys;
 
@@ -593,6 +593,7 @@ int main(int argc,char ** argv)
 
 			if (err<=eps)
 			{
+				total_steps++;
 				t+=dt;
 #pragma omp parallel for
 				for (int i=0;i<size;i++)
@@ -610,11 +611,14 @@ int main(int argc,char ** argv)
 
 			}
 			else
+			{
 				dt/=2.0;
+				total_rejected++;
+			}
 
 			if (t>=fac)
 			{
-				output(u,c,x,y,pname,hires,N);
+				//output(u,c,x,y,pname,hires,N);
 				fac+=tmax/10;
 			}
 		}
@@ -625,10 +629,19 @@ int main(int argc,char ** argv)
 	}
 
 
+	cout << "wall clock = " << int(omp_get_wtime()-st+0.5) << endl;
+	printf("average timestep = %e\n",1.0*tmax/total_steps);
+	cout << "number of rejected steps = " << total_rejected << endl;
+
 	out.close();
 
 	output(u,c,x,y,pname,hires,N);
 
+	char cmd[300];
+	sprintf(cmd,"./global_error profile_omp-N-1000-tmax-%g-rtol-1e-8-atol-1e-10.dat %s",tmax,pname.c_str());
+	system(cmd);
+	//string cmd="./global_error profile_omp-N-1000-tmax-"+to_string(tmax)+"-rtol-1e-8-atol-1e-10.dat "+pname;
+	//system(cmd.c_str());
 
 }
 
