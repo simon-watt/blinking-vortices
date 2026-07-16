@@ -352,7 +352,7 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
 	}
 }
 
-double fu(double u,double c,double q,double r,double f,double theta,double Da,double ua)
+double fu(double u,double c,double q,double r,double f,double theta,double ua)
 {
 	double arr1,arr2;
 
@@ -365,10 +365,10 @@ double fu(double u,double c,double q,double r,double f,double theta,double Da,do
 		arr1=exp(-f/u);arr2=exp(-1.0/u);
 	}
 
-	return -q*r*Da*c*arr1/theta+Da*c*arr2/theta;
+	return -q*r*c*arr1/theta+c*arr2/theta;
 }
 
-double fv(double u,double c,double q,double r,double f,double theta,double Da,double ua)
+double fv(double u,double c,double q,double r,double f,double theta,double ua)
 {
 	double arr1,arr2;
 
@@ -381,11 +381,11 @@ double fv(double u,double c,double q,double r,double f,double theta,double Da,do
 		arr1=exp(-f/u);arr2=exp(-1.0/u);
 	}
 
-	return -r*Da*c*arr1-Da*c*arr2;
+	return -r*c*arr1-c*arr2;
 }
 
 void rk(vector<double> u0,vector<double> c0,vector<double> &u1,vector<double> &c1,double dt,
-		double q,double r,double f,double theta,double Da,double ua)
+		double q,double r,double f,double theta,double ua)
 {
 	int size=u0.size();
 
@@ -394,14 +394,14 @@ void rk(vector<double> u0,vector<double> c0,vector<double> &u1,vector<double> &c
 	{
 		double k1t, k2t, k3t, k4t, k1c, k2c, k3c, k4c;
 
-		k1t = dt*fu(u0[i], c0[i],q,r,f,theta,Da,ua);
-		k1c = dt*fv(u0[i], c0[i],q,r,f,theta,Da,ua);
-		k2t = dt*fu(u0[i] + 0.5*k1t, c0[i] + 0.5*k1c,q,r,f,theta,Da,ua);
-		k2c = dt*fv(u0[i] + 0.5*k1t, c0[i] + 0.5*k1c,q,r,f,theta,Da,ua);
-		k3t = dt*fu(u0[i] + 0.5*k2t, c0[i] + 0.5*k2c,q,r,f,theta,Da,ua);
-		k3c = dt*fv(u0[i] + 0.5*k2t, c0[i] + 0.5*k2c,q,r,f,theta,Da,ua);
-		k4t = dt*fu(u0[i] + k3t, c0[i] + k3c,q,r,f,theta,Da,ua);
-		k4c = dt*fv(u0[i] + k3t, c0[i] + k3c,q,r,f,theta,Da,ua);
+		k1t = dt*fu(u0[i], c0[i],q,r,f,theta,ua);
+		k1c = dt*fv(u0[i], c0[i],q,r,f,theta,ua);
+		k2t = dt*fu(u0[i] + 0.5*k1t, c0[i] + 0.5*k1c,q,r,f,theta,ua);
+		k2c = dt*fv(u0[i] + 0.5*k1t, c0[i] + 0.5*k1c,q,r,f,theta,ua);
+		k3t = dt*fu(u0[i] + 0.5*k2t, c0[i] + 0.5*k2c,q,r,f,theta,ua);
+		k3c = dt*fv(u0[i] + 0.5*k2t, c0[i] + 0.5*k2c,q,r,f,theta,ua);
+		k4t = dt*fu(u0[i] + k3t, c0[i] + k3c,q,r,f,theta,ua);
+		k4c = dt*fv(u0[i] + k3t, c0[i] + k3c,q,r,f,theta,ua);
 
 		u1[i] = u0[i] + (k1t + 2.0*k2t + 2.0*k3t + k4t) / 6.0;
 		c1[i] = c0[i] + (k1c + 2.0*k2c + 2.0*k3c + k4c) / 6.0;
@@ -455,7 +455,7 @@ int main(int argc,char ** argv)
 	double dx=1.0*L/N;
 	double eta=0.1,xi=20,Pe=2000,Le=1;
 	double t=0,dt0=0.0001,dt=dt0;
-	double q=1,r=1,f=2,Da=10,theta=1;
+	double q=1,r=1,f=2,theta=1;
 	int size=pow(N+1,2);
 	double ua=0,A=1,sigma=0.5,width=0.1;
 	double pi=4.0*atan(1.0);
@@ -466,7 +466,7 @@ int main(int argc,char ** argv)
 	double atol=1e-8,rtol=1e-5;
 	int total_steps=0,total_rejected=0;
 	int advType=0;
-
+	
 	vector<double> u(size),c(size);
 	vector<double> uWKS(size),cWKS(size);
 	vector<double> uF(size),cF(size);
@@ -516,10 +516,6 @@ int main(int argc,char ** argv)
 		else if (arg=="noD")
 		{
 			invPe=0; // infinite Peclet number
-		}
-		else if (arg=="Da")
-		{
-			Da=atof(argv[i+1]);
 		}
 		else if (arg=="hires")
 		{
@@ -608,7 +604,7 @@ int main(int argc,char ** argv)
 			dt=min(dt,tend-t);
 
 			// full step
-			rk(u,c,uF,cF,dt,q,r,f,theta,Da,ua);
+			rk(u,c,uF,cF,dt,q,r,f,theta,ua);
 			diffusion(uF,uF_WKS,dt,dx,Le*invPe,N);
 			diffusion(cF,cF_WKS,dt,dx,invPe,N);
 			advection(uF,uF_WKS,x,y,dt,dx,eta,xi,width,advType,xs,ys,N);
@@ -616,7 +612,7 @@ int main(int argc,char ** argv)
 			normalise(uF,ua,1e8);
 			normalise(cF,0.0,1.0);
 			// first half step
-			rk(u,c,uH1,cH1,0.5*dt,q,r,f,theta,Da,ua);
+			rk(u,c,uH1,cH1,0.5*dt,q,r,f,theta,ua);
 			diffusion(uH1,uH1_WKS,0.5*dt,dx,Le*invPe,N);
 			diffusion(cH1,cH1_WKS,0.5*dt,dx,invPe,N);
 			advection(uH1,uH1_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
@@ -624,7 +620,7 @@ int main(int argc,char ** argv)
 			normalise(uH1,ua,1e8);
 			normalise(cH1,0.0,1.0);
 			// second half step
-			rk(uH1,cH1,uH2,cH2,0.5*dt,q,r,f,theta,Da,ua);
+			rk(uH1,cH1,uH2,cH2,0.5*dt,q,r,f,theta,ua);
 			diffusion(uH2,uH2_WKS,0.5*dt,dx,Le*invPe,N);
 			diffusion(cH2,cH2_WKS,0.5*dt,dx,invPe,N);
 			advection(uH2,uH2_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
