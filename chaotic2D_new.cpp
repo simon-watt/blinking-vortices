@@ -453,13 +453,12 @@ int main(int argc,char ** argv)
 	int N=1000;
 	double L=10;
 	double dx=1.0*L/N;
-	double eta=0.1,xi=20,Pe=2000,Le=1;
+	double eta=0.1,xi=20,Le=1;
 	double t=0,dt0=0.0001,dt=dt0;
 	double q=1,r=1,f=2,theta=1;
 	int size=pow(N+1,2);
 	double ua=0,A=1,sigma=0.5,width=0.1;
 	double pi=4.0*atan(1.0);
-	double invPe=1.0/Pe;
 	int hires=0;
 	double T0=1;
 	int scenario=2;
@@ -485,7 +484,7 @@ int main(int argc,char ** argv)
 
 	int nmins=10000;
 
-	string oname,pname;
+	string oname,pname,oname_r="output_recent.dat",pname_r="profile_recent.dat";
 
 	for (int i=1;i<argc;i+=2)
 	{
@@ -496,11 +495,6 @@ int main(int argc,char ** argv)
 			width=atof(argv[i+1]);
 		else if (arg=="advType")
 			advType=atoi(argv[i+1]);
-		else if (arg=="Pe")
-		{
-			Pe=atof(argv[i+1]);
-			invPe=1.0/Pe;
-		}
 		else if (arg=="eta")
 			eta=atof(argv[i+1]);
 		else if (arg=="tmax")
@@ -511,12 +505,10 @@ int main(int argc,char ** argv)
 			sigma=atof(argv[i+1]);
 		else if (arg=="L")
 		{
-			L=atof(argv[i+1]);dx=1.0*L/N;
+			L=atof(argv[i+1]);
 		}
-		else if (arg=="noD")
-		{
-			invPe=0; // infinite Peclet number
-		}
+		else if (arg=="N")
+			N=atoi(argv[i+1]);
 		else if (arg=="hires")
 		{
 			hires=1;
@@ -560,6 +552,19 @@ int main(int argc,char ** argv)
 		}
 	}
 
+	// account for any changes of L and N above
+	dx=1.0*L/N;
+	size=pow(N+1,2);
+        u.resize(size);c.resize(size);
+        uWKS.resize(size);cWKS.resize(size);
+        uF.resize(size);cF.resize(size);
+        uF_WKS.resize(size);cF_WKS.resize(size);
+        uH1.resize(size);cH1.resize(size);
+        uH1_WKS.resize(size);cH1_WKS.resize(size);
+        uH2.resize(size);cH2.resize(size);
+        uH2_WKS.resize(size);cH2_WKS.resize(size);
+        x.resize(N+1);y.resize(N+1);
+
 	for (int i=0;i<=N;i++)
 	{
 		x[i]=i*dx-L/2;
@@ -584,6 +589,7 @@ int main(int argc,char ** argv)
 	oname+=".dat";pname+=".dat";
 
 	ofstream out(oname);
+	ofstream out_r(oname_r);
 
 	double sbuff=0.9; // safety buffer
 	double period=1.0*T0/scenario,nextBlink=period;
@@ -605,24 +611,24 @@ int main(int argc,char ** argv)
 
 			// full step
 			rk(u,c,uF,cF,dt,q,r,f,theta,ua);
-			diffusion(uF,uF_WKS,dt,dx,Le*invPe,N);
-			diffusion(cF,cF_WKS,dt,dx,invPe,N);
+			diffusion(uF,uF_WKS,dt,dx,1.0,N);
+			diffusion(cF,cF_WKS,dt,dx,1.0/Le,N);
 			advection(uF,uF_WKS,x,y,dt,dx,eta,xi,width,advType,xs,ys,N);
 			advection(cF,cF_WKS,x,y,dt,dx,eta,xi,width,advType,xs,ys,N);
 			normalise(uF,ua,1e8);
 			normalise(cF,0.0,1.0);
 			// first half step
 			rk(u,c,uH1,cH1,0.5*dt,q,r,f,theta,ua);
-			diffusion(uH1,uH1_WKS,0.5*dt,dx,Le*invPe,N);
-			diffusion(cH1,cH1_WKS,0.5*dt,dx,invPe,N);
+			diffusion(uH1,uH1_WKS,0.5*dt,dx,1.0,N);
+			diffusion(cH1,cH1_WKS,0.5*dt,dx,1.0/Le,N);
 			advection(uH1,uH1_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
 			advection(cH1,cH1_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
 			normalise(uH1,ua,1e8);
 			normalise(cH1,0.0,1.0);
 			// second half step
 			rk(uH1,cH1,uH2,cH2,0.5*dt,q,r,f,theta,ua);
-			diffusion(uH2,uH2_WKS,0.5*dt,dx,Le*invPe,N);
-			diffusion(cH2,cH2_WKS,0.5*dt,dx,invPe,N);
+			diffusion(uH2,uH2_WKS,0.5*dt,dx,1.0,N);
+			diffusion(cH2,cH2_WKS,0.5*dt,dx,1.0/Le,N);
 			advection(uH2,uH2_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
 			advection(cH2,cH2_WKS,x,y,0.5*dt,dx,eta,xi,width,advType,xs,ys,N);
 			normalise(uH2,ua,1e8);
@@ -648,7 +654,7 @@ int main(int argc,char ** argv)
 				double err1=findErr(uF,uH2,cF,cH2);
 				double err2=findErrL2(uF,uH2,cF,cH2);
 				out << t << " " << av(u) << " " << av(c) << " " << err1 << " " << err2 << endl;
-
+                                out_r << t << " " << av(u) << " " << av(c) << " " << err1 << " " << err2 << endl;
 			}
 			else
 			{
@@ -677,6 +683,7 @@ int main(int argc,char ** argv)
 
 	output(u,c,x,y,pname,hires,N);
 
+	output(u,c,x,y,pname_r,hires,N);
 
 }
 
