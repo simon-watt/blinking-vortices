@@ -113,8 +113,8 @@ void diffusion(vector<double> &u,vector<double> uHalf,double dt,double dx,double
 			int index=idx(i,j,N);
 			int indexU=idx(i,j+1,N); // up
 			int indexD=idx(i,j-1,N); // down
-						 //int indexL=idx(i-1,j,N); // left
-						 //int indexR=idx(i+1,j,N); // right
+			//int indexL=idx(i-1,j,N); // left
+			//int indexR=idx(i+1,j,N); // right
 			double Uyy;
 
 			if (i==0) // lhs
@@ -230,8 +230,8 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
 			int index=idx(i,j,N);
 			int indexU=idx(i,j+1,N); // up
 			int indexD=idx(i,j-1,N); // down
-						 //int indexL=idx(i-1,j,N); // left
-						 //int indexR=idx(i+1,j,N); // right
+			//int indexL=idx(i-1,j,N); // left
+			//int indexR=idx(i+1,j,N); // right
 
 			double X=x[i]-xs,Y=y[j]-ys;
 			double dist=sqrt(pow(beam,2)+pow(X,2)+pow(Y,2));
@@ -513,12 +513,29 @@ int main(int argc,char ** argv)
 		{
 			rtol=atof(argv[i+1]);
 		}
+		else if (arg=="N")
+		{
+			N=atoi(argv[i+1]);
+		}
 		else
 		{
 			cout << "Parameter " << argv[i] << " not recognised" << endl;
 			exit(0);
 		}
 	}
+
+	// account for any changes of L and N above
+	dx=1.0*L/N;
+	size=pow(N+1,2);
+	u.resize(size);c.resize(size);
+	uWKS.resize(size);cWKS.resize(size);
+	uF.resize(size);cF.resize(size);
+	uF_WKS.resize(size);cF_WKS.resize(size);
+	uH1.resize(size);cH1.resize(size);
+	uH1_WKS.resize(size);cH1_WKS.resize(size);
+	uH2.resize(size);cH2.resize(size);
+	uH2_WKS.resize(size);cH2_WKS.resize(size);
+	x.resize(N+1);y.resize(N+1);
 
 	for (int i=0;i<=N;i++)
 	{
@@ -637,11 +654,6 @@ int main(int argc,char ** argv)
 
 	output(u,c,x,y,pname,hires,N);
 
-	char cmd[300];
-	sprintf(cmd,"./global_error profile_omp-N-1000-tmax-%g-rtol-1e-8-atol-1e-10.dat %s",tmax,pname.c_str());
-	system(cmd);
-	//string cmd="./global_error profile_omp-N-1000-tmax-"+to_string(tmax)+"-rtol-1e-8-atol-1e-10.dat "+pname;
-	//system(cmd.c_str());
 
 }
 

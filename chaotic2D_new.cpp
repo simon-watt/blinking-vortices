@@ -460,7 +460,7 @@ int main(int argc,char ** argv)
 	double ua=0,A=1,sigma=0.5,width=0.1;
 	double pi=4.0*atan(1.0);
 	int hires=0;
-	double T0=1;
+	double T0=1,ell=1;
 	int scenario=2;
 	double atol=1e-8,rtol=1e-5;
 	int total_steps=0,total_rejected=0;
@@ -545,6 +545,14 @@ int main(int argc,char ** argv)
 		{
 			rtol=atof(argv[i+1]);
 		}
+		else if (arg=="ell")
+		{
+			ell=atof(argv[i+1]);
+		}
+		else if (arg=="period")
+		{
+			T0=atof(argv[i+1]);
+		}
 		else
 		{
 			cout << "Parameter " << argv[i] << " not recognised" << endl;
@@ -583,8 +591,11 @@ int main(int argc,char ** argv)
 	oname="output_new-N-"+to_string(N);pname="profile_new-N-"+to_string(N);
 	for (int i=1;i<argc;i+=2) 
 	{
-		oname+="-"+string(argv[i])+"-"+string(argv[i+1]);
-		pname+="-"+string(argv[i])+"-"+string(argv[i+1]);
+		if (strcmp(argv[i],"N")!=0)
+		{
+			oname+="-"+string(argv[i])+"-"+string(argv[i+1]);
+			pname+="-"+string(argv[i])+"-"+string(argv[i+1]);
+		}
 	}
 	oname+=".dat";pname+=".dat";
 
@@ -600,8 +611,8 @@ int main(int argc,char ** argv)
 	{
 		double err,eps=1e-6;
 		int index=int(t/period)%scenario;
-		xs=cos(2.0*index*pi/scenario);
-		ys=sin(2.0*index*pi/scenario);
+		xs=ell*cos(2.0*index*pi/scenario);
+		ys=ell*sin(2.0*index*pi/scenario);
 
 		dt=max(dt0,dt);
 		double tend=min(nextBlink,tmax);
@@ -664,7 +675,7 @@ int main(int argc,char ** argv)
 
 			if (t>=fac)
 			{
-				//output(u,c,x,y,pname,hires,N);
+				output(u,c,x,y,pname,hires,N);
 				fac+=tmax/10;
 			}
 		}
