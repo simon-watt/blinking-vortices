@@ -252,8 +252,8 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
                                 }
                                 else
                                 {
-                                        vx=-eta*Y*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
-                                        vy=+eta*X*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                        vx=-eta*Y*(1.0-exp(-pow(dist/width,2)))/pow(dist,2);
+                                        vy=+eta*X*(1.0-exp(-pow(dist/width,2)))/pow(dist,2);
                                 }
                         }
 
@@ -318,8 +318,8 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
                                 }
                                 else
                                 {
-                                        vx=-eta*Y*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
-                                        vy=+eta*X*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                        vx=-eta*Y*(1.0-exp(-pow(dist/width,2)))/pow(dist,2);
+                                        vy=+eta*X*(1.0-exp(-pow(dist/width,2)))/pow(dist,2);
                                 }
                         }
 
