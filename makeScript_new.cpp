@@ -23,12 +23,16 @@ int main(int argc, char ** argv)
 	out << "#PBS -l wd" << endl;
 	out << "#PBS -q normal" << endl;
 	out << "#PBS -l walltime=48:00:00,mem=32Gb,ncpus=48,jobfs=10000MB" << endl;
+	out << "#PBS -o /scratch/ad68/sw4657/logs/" << endl;
+	out << "#PBS -e /scratch/ad68/sw4657/logs/" << endl;
 	out << "export OMP_NUM_THREADS=$PBS_NCPUS" << endl;
 	out << "cp chaotic2D_new $PBS_JOBFS" << endl;
 	out << "cd $PBS_JOBFS" << endl;
 	out << cmd << endl;
 	out << "cp output*.dat /scratch/ad68/sw4657/Chaotic/TwoD/ChangingAdvection/" << endl;
 	out << "cp profile*.dat /scratch/ad68/sw4657/Chaotic/TwoD/ChangingAdvection/" << endl;
+	out << "echo \"Jobname\"" << endl;
+	out << "echo $PBS_JOBNAME" << endl;
 	out.close();
 
 	cmd="qsub "+fname;

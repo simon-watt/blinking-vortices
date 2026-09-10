@@ -30,7 +30,7 @@ void triSolve(vector<double> a,vector<double> b,vector<double> c,vector<double> 
 
 }
 
-void output(vector<double> u,vector<double> c,vector<double> x,vector<double> y,string fname,int hires,int N)
+void output(vector<double> u,vector<double> c,vector<double> x,vector<double> y,const string fname,int hires,int N)
 {
 	ofstream out(fname);
 
@@ -365,7 +365,7 @@ double fu(double u,double c,double q,double r,double f,double theta,double ua)
 		arr1=exp(-f/u);arr2=exp(-1.0/u);
 	}
 
-	return -q*r*c*arr1/theta+c*arr2/theta;
+	return -q*r*c*arr1+c*arr2;
 }
 
 double fv(double u,double c,double q,double r,double f,double theta,double ua)
@@ -381,7 +381,7 @@ double fv(double u,double c,double q,double r,double f,double theta,double ua)
 		arr1=exp(-f/u);arr2=exp(-1.0/u);
 	}
 
-	return -r*c*arr1-c*arr2;
+	return -theta*r*c*arr1-theta*c*arr2;
 }
 
 void rk(vector<double> u0,vector<double> c0,vector<double> &u1,vector<double> &c1,double dt,
@@ -675,8 +675,10 @@ int main(int argc,char ** argv)
 
 			if (t>=fac)
 			{
-				output(u,c,x,y,pname,hires,N);
-				fac+=tmax/10;
+				//output(u,c,x,y,pname,hires,N);
+				//fac+=tmax/10;
+				output(u,c,x,y,"profile_recent.dat",hires,N);
+				fac+=0.5*period;
 			}
 		}
 		t=tend; // avoid round off errors

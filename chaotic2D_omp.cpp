@@ -218,7 +218,7 @@ void diffusion(vector<double> &u,vector<double> uHalf,double dt,double dx,double
 }
 
 void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<double> y,double dt,double dx,
-		double eta,double xi,double beam,double xs,double ys,int N)
+		double eta,double xi,double width,double xs,double ys,int advType,int N)
 {
 #pragma omp parallel for
 	for (int j=0;j<=N;j++)
@@ -234,9 +234,28 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
 			//int indexR=idx(i+1,j,N); // right
 
 			double X=x[i]-xs,Y=y[j]-ys;
-			double dist=sqrt(pow(beam,2)+pow(X,2)+pow(Y,2));
-			double vx=(-eta*X-eta*xi*Y)/pow(dist,2);
-			double vy=(eta*xi*X-eta*Y)/pow(dist,2);
+			double dist,vx,vy;
+
+			if (advType==0)
+                        {
+                                dist=sqrt(pow(width,2)+pow(X,2)+pow(Y,2));
+                                vx=(-eta*X-eta*xi*Y)/pow(dist,2);
+                                vy=(eta*xi*X-eta*Y)/pow(dist,2);
+                        }
+                        else
+                        {
+                                dist=sqrt(pow(X,2)+pow(Y,2));
+                                if (dist==0)
+                                {
+                                        vx=-eta*Y/pow(width,2);
+                                        vy=+eta*X/pow(width,2);
+                                }
+                                else
+                                {
+                                        vx=-eta*Y*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                        vy=+eta*X*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                }
+                        }
 
 			double Uy;
 
@@ -281,9 +300,29 @@ void advection(vector<double> &u,vector<double> uH,vector<double> x,vector<doubl
 			int indexR=idx(i+1,j,N); // right
 
 			double X=x[i]-xs,Y=y[j]-ys;
-			double dist=sqrt(pow(beam,2)+pow(X,2)+pow(Y,2));
-			double vx=(-eta*X-eta*xi*Y)/pow(dist,2);
-			double vy=(eta*xi*X-eta*Y)/pow(dist,2);
+                        double dist,vx,vy;
+
+                        if (advType==0)
+                        {
+                                dist=sqrt(pow(width,2)+pow(X,2)+pow(Y,2));
+                                vx=(-eta*X-eta*xi*Y)/pow(dist,2);
+                                vy=(eta*xi*X-eta*Y)/pow(dist,2);
+                        }
+                        else
+                        {
+                                dist=sqrt(pow(X,2)+pow(Y,2));
+                                if (dist==0)
+                                {
+                                        vx=-eta*Y/pow(width,2);
+                                        vy=+eta*X/pow(width,2);
+                                }
+                                else
+                                {
+                                        vx=-eta*Y*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                        vy=+eta*X*(1.0-exp(pow(dist/width,2)))/pow(dist,2);
+                                }
+                        }
+
 			double Ux;
 
 			if (i==0 || i==N)
@@ -415,10 +454,11 @@ int main(int argc,char ** argv)
 	double L=10;
 	double dx=1.0*L/N;
 	double eta=0.1,xi=20,Pe=2000,Le=1;
+	int advType=0;
 	double t=0,dt0=0.0001,dt=dt0;
 	double q=1,r=1,f=2,Da=10,theta=1;
 	int size=pow(N+1,2);
-	double ua=0,A=1,sigma=0.5,beam=0.1;
+	double ua=0,A=1,sigma=0.5,width=0.1;
 	double pi=4.0*atan(1.0);
 	double invPe=1.0/Pe;
 	int hires=0;
@@ -517,6 +557,18 @@ int main(int argc,char ** argv)
 		{
 			N=atoi(argv[i+1]);
 		}
+		else if (arg=="Le")
+		{
+			Le=atof(argv[i+1]);
+		}
+		else if (arg=="advType")
+		{
+			advType=atoi(argv[i+1]);
+		}
+		else if (arg=="width")
+		{
+			width=atof(argv[i+1]);
+		}
 		else
 		{
 			cout << "Parameter " << argv[i] << " not recognised" << endl;
@@ -584,24 +636,24 @@ int main(int argc,char ** argv)
 			rk(u,c,uF,cF,dt,q,r,f,theta,Da,ua);
 			diffusion(uF,uF_WKS,dt,dx,Le*invPe,N);
 			diffusion(cF,cF_WKS,dt,dx,invPe,N);
-			advection(uF,uF_WKS,x,y,dt,dx,eta,xi,beam,xs,ys,N);
-			advection(cF,cF_WKS,x,y,dt,dx,eta,xi,beam,xs,ys,N);
+			advection(uF,uF_WKS,x,y,dt,dx,eta,xi,width,xs,ys,advType,N);
+			advection(cF,cF_WKS,x,y,dt,dx,eta,xi,width,xs,ys,advType,N);
 			normalise(uF,ua,1e8);
 			normalise(cF,0.0,1.0);
 			// first half step
 			rk(u,c,uH1,cH1,0.5*dt,q,r,f,theta,Da,ua);
 			diffusion(uH1,uH1_WKS,0.5*dt,dx,Le*invPe,N);
 			diffusion(cH1,cH1_WKS,0.5*dt,dx,invPe,N);
-			advection(uH1,uH1_WKS,x,y,0.5*dt,dx,eta,xi,beam,xs,ys,N);
-			advection(cH1,cH1_WKS,x,y,0.5*dt,dx,eta,xi,beam,xs,ys,N);
+			advection(uH1,uH1_WKS,x,y,0.5*dt,dx,eta,xi,width,xs,ys,advType,N);
+			advection(cH1,cH1_WKS,x,y,0.5*dt,dx,eta,xi,width,xs,ys,advType,N);
 			normalise(uH1,ua,1e8);
 			normalise(cH1,0.0,1.0);
 			// second half step
 			rk(uH1,cH1,uH2,cH2,0.5*dt,q,r,f,theta,Da,ua);
 			diffusion(uH2,uH2_WKS,0.5*dt,dx,Le*invPe,N);
 			diffusion(cH2,cH2_WKS,0.5*dt,dx,invPe,N);
-			advection(uH2,uH2_WKS,x,y,0.5*dt,dx,eta,xi,beam,xs,ys,N);
-			advection(cH2,cH2_WKS,x,y,0.5*dt,dx,eta,xi,beam,xs,ys,N);
+			advection(uH2,uH2_WKS,x,y,0.5*dt,dx,eta,xi,width,xs,ys,advType,N);
+			advection(cH2,cH2_WKS,x,y,0.5*dt,dx,eta,xi,width,xs,ys,advType,N);
 			normalise(uH2,ua,1e8);
 			normalise(cH2,0.0,1.0);
 			//err=findErr(uF,uH2,cF,cH2);
@@ -635,7 +687,7 @@ int main(int argc,char ** argv)
 
 			if (t>=fac)
 			{
-				//output(u,c,x,y,pname,hires,N);
+				output(u,c,x,y,pname,hires,N);
 				fac+=tmax/10;
 			}
 		}
